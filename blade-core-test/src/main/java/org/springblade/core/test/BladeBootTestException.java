@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2018-2028, Chill Zhuang 庄骞 (smallchill@163.com).
+ * Copyright (c) 2018-2028, DreamLu 卢春梦 (qq596392912@gmail.com).
  * <p>
  * Licensed under the GNU LESSER GENERAL PUBLIC LICENSE 3.0;
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.springblade.core.secure.props;
 
-import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-
-import java.util.ArrayList;
-import java.util.List;
+package org.springblade.core.test;
 
 /**
- * 客户端校验配置
+ * blade test 异常
  *
- * @author Chill
+ * @author L.cm
  */
-@Data
-@ConfigurationProperties("blade.secure")
-public class BladeClientProperties {
+class BladeBootTestException extends RuntimeException {
 
-	private final List<ClientSecure> client = new ArrayList<>();
-
+	BladeBootTestException(String message) {
+		super(message);
+	}
 }

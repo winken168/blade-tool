@@ -1,24 +1,28 @@
 <template>
   <basic-container>
     <avue-crud :option="option"
+               :table-loading="loading"
                :data="data"
                :page="page"
-               @row-del="rowDel"
-               v-model="form"
                :permission="permissionList"
+               :before-open="beforeOpen"
+               v-model="form"
+               ref="crud"
                @row-update="rowUpdate"
                @row-save="rowSave"
-               :before-open="beforeOpen"
+               @row-del="rowDel"
                @search-change="searchChange"
                @search-reset="searchReset"
                @selection-change="selectionChange"
+               @current-change="currentChange"
+               @size-change="sizeChange"
                @on-load="onLoad">
       <template slot="menuLeft">
         <el-button type="danger"
                    size="small"
                    icon="el-icon-delete"
                    plain
-                   v-if="permission.$!{table.entityPath}_delete"
+                   v-if="permission.$!{cfg.entityKey}_delete"
                    @click="handleDelete">删 除
         </el-button>
       </template>
@@ -34,6 +38,8 @@
     data() {
       return {
         form: {},
+        query: {},
+        loading: true,
         page: {
           pageSize: 10,
           currentPage: 1,
@@ -41,6 +47,10 @@
         },
         selectionList: [],
         option: {
+          height: 'auto',
+          calcHeight: 210,
+          searchShow: true,
+          searchMenuSpan: 6,
           tip: false,
           border: true,
           index: true,
@@ -69,10 +79,10 @@
       ...mapGetters(["permission"]),
       permissionList() {
         return {
-          addBtn: this.permission.$!{table.entityPath}_add,
-          viewBtn: this.permission.$!{table.entityPath}_view,
-          delBtn: this.permission.$!{table.entityPath}_delete,
-          editBtn: this.permission.$!{table.entityPath}_edit
+          addBtn: this.vaildData(this.permission.$!{cfg.entityKey}_add, false),
+          viewBtn: this.vaildData(this.permission.$!{cfg.entityKey}_view, false),
+          delBtn: this.vaildData(this.permission.$!{cfg.entityKey}_delete, false),
+          editBtn: this.vaildData(this.permission.$!{cfg.entityKey}_edit, false)
         };
       },
       ids() {
@@ -84,24 +94,30 @@
       }
     },
     methods: {
-      rowSave(row, loading) {
+      rowSave(row, done, loading) {
         add(row).then(() => {
-          loading();
+          done();
           this.onLoad(this.page);
           this.$message({
             type: "success",
             message: "操作成功!"
           });
+        }, error => {
+          window.console.log(error);
+          loading();
         });
       },
-      rowUpdate(row, index, loading) {
+      rowUpdate(row, index, done, loading) {
         update(row).then(() => {
-          loading();
+          done();
           this.onLoad(this.page);
           this.$message({
             type: "success",
             message: "操作成功!"
           });
+        }, error => {
+          window.console.log(error);
+          loading();
         });
       },
       rowDel(row) {
@@ -120,15 +136,6 @@
               message: "操作成功!"
             });
           });
-      },
-      searchReset() {
-        this.onLoad(this.page);
-      },
-      searchChange(params) {
-        this.onLoad(this.page, params);
-      },
-      selectionChange(list) {
-        this.selectionList = list;
       },
       handleDelete() {
         if (this.selectionList.length === 0) {
@@ -152,7 +159,6 @@
             this.$refs.crud.toggleSelection();
           });
       },
-
       beforeOpen(done, type) {
         if (["edit", "view"].includes(type)) {
           getDetail(this.form.id).then(res => {
@@ -161,11 +167,37 @@
         }
         done();
       },
+      searchReset() {
+        this.query = {};
+        this.onLoad(this.page);
+      },
+      searchChange(params, done) {
+        this.query = params;
+        this.page.currentPage = 1;
+        this.onLoad(this.page, params);
+        done();
+      },
+      selectionChange(list) {
+        this.selectionList = list;
+      },
+      selectionClear() {
+        this.selectionList = [];
+        this.$refs.crud.toggleSelection();
+      },
+      currentChange(currentPage){
+        this.page.currentPage = currentPage;
+      },
+      sizeChange(pageSize){
+        this.page.pageSize = pageSize;
+      },
       onLoad(page, params = {}) {
-        getList(page.currentPage, page.pageSize, params).then(res => {
+        this.loading = true;
+        getList(page.currentPage, page.pageSize, Object.assign(params, this.query)).then(res => {
           const data = res.data.data;
           this.page.total = data.total;
           this.data = data.records;
+          this.loading = false;
+          this.selectionClear();
         });
       }
     }

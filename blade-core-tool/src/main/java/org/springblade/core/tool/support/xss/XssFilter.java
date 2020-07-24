@@ -15,6 +15,9 @@
  */
 package org.springblade.core.tool.support.xss;
 
+import lombok.AllArgsConstructor;
+import org.springblade.core.tool.utils.StringPool;
+
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -24,24 +27,31 @@ import java.io.IOException;
  *
  * @author Chill
  */
+@AllArgsConstructor
 public class XssFilter implements Filter {
 
+	private XssProperties xssProperties;
+	private XssUrlProperties xssUrlProperties;
+
 	@Override
-	public void init(FilterConfig config) throws ServletException {
+	public void init(FilterConfig config) {
 
 	}
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		ServletRequest requestWrapper = null;
-		if (request instanceof HttpServletRequest) {
-			requestWrapper = new XssHttpServletRequestWrapper((HttpServletRequest) request);
-		}
-		if (requestWrapper == null) {
+		String path = ((HttpServletRequest) request).getServletPath();
+		if (isSkip(path)) {
 			chain.doFilter(request, response);
 		} else {
-			chain.doFilter(requestWrapper, response);
+			XssHttpServletRequestWrapper xssRequest = new XssHttpServletRequestWrapper((HttpServletRequest) request);
+			chain.doFilter(xssRequest, response);
 		}
+	}
+
+	private boolean isSkip(String path) {
+		return (xssUrlProperties.getExcludePatterns().stream().anyMatch(path::startsWith))
+			|| (xssProperties.getSkipUrl().stream().map(url -> url.replace("/**", StringPool.EMPTY)).anyMatch(path::startsWith));
 	}
 
 	@Override
